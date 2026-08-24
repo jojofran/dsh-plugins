@@ -1,0 +1,29 @@
+{
+  "name": "@user/dsh-plugin-task-notify",
+  "version": "1.1.0",
+  "description": "任务完成通知枢纽：声音提示、系统通知、可插拔 Hook 扩展，按项目独立配置",
+  "private": true,
+  "type": "module",
+  "author": "dsh-plugins",
+  "license": "MIT",
+  "keywords": ["dsh", "plugin", "notification", "task", "audio", "hook"],
+  "capabilities": ["runtime-extension", "ui"],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime"
+      ],
+      "platform": "web"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-typert-protocol": "link:/Users/fran/Documents/Code/dk-harness/packages/typert/protocol",
+    "@deepseek-ai/cordis": "link:/Users/fran/Documents/Code/dk-harness/vendor/cordis"
+  }
+}

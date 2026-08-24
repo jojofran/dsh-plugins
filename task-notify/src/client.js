@@ -1,0 +1,230 @@
+// 任务通知 Client 半部（当前运行版本，从 plugin-code.json 同步）
+// 依赖：React / host / styles / ctx / console
+return {
+  inject: ['timer'],
+  apply(ctx) {
+    const STORAGE_KEY = 'dsh.ding-chime'
+    const DEFAULTS = { sound: true, macNotify: false, showBell: true, soundType: 'bell', soundUrl: '' }
+    const SOUNDS = ['bell', 'soft', 'beep', 'url']
+    const loadAll = () => { try { const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null; return raw ? JSON.parse(raw) : {} } catch (err) { return {} } }
+    const saveAll = (data) => { try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch (err) {} }
+    const getWorkspaceId = (sid, useWs) => { if (!sid) return '_default'; try { const ws = useWs(s => s.items.find(w => w.sessionIds.includes(sid))); return ws ? ws.workspaceId : '_default' } catch (e) { return '_default' } }
+    const resolveSettings = (wsId) => { const all = loadAll(); const ws = all[wsId]; if (ws) return { ...DEFAULTS, ...ws }; const def = all._default; return def ? { ...DEFAULTS, ...def } : { ...DEFAULTS } }
+    const saveSettings = (wsId, data) => { const all = loadAll(); all[wsId] = {}; for (const k of Object.keys(DEFAULTS)) all[wsId][k] = data[k]; saveAll(all) }
+    let currentWsId = '_default'
+    const listeners = new Set()
+    const notify = () => { for (const fn of listeners) fn() }
+    const subscribe = (fn) => { listeners.add(fn); return () => { listeners.delete(fn) } }
+    const executeHook = (h) => {
+      try {
+        if (h.type === 'notification' && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          const n = new Notification(h.title || '任务完成', { body: h.body || '' }); n.onclick = () => { window.focus() }
+        } else if (h.type === 'fetch' && typeof fetch !== 'undefined' && h.url) {
+          fetch(h.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(h.data || {}) }).catch(() => {})
+        } else if (h.type === 'console') { console.log(h.message || '[任务通知] 任务完成') }
+      } catch (err) {}
+    }
+    let notifyPermitted = false
+    const ensureNotify = async () => {
+      try {
+        if (typeof Notification === 'undefined') return false
+        if (Notification.permission === 'granted') { notifyPermitted = true; return true }
+        if (Notification.permission === 'denied') return false
+        const r = await Notification.requestPermission(); notifyPermitted = r === 'granted'; return notifyPermitted
+      } catch (err) { return false }
+    }
+    const BellIcon = (props) => React.createElement('svg', {
+      viewBox: '0 0 24 24', width: props.size || 16, height: props.size || 16,
+      fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+      strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
+    },
+      React.createElement('path', { d: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9' }),
+      React.createElement('path', { d: 'M13.73 21a2 2 0 0 1-3.46 0' }),
+    )
+    const h = React.createElement
+    styles.insert(`.dsh-nt-section{display:flex;flex-direction:column;gap:12px;max-width:760px;color:var(--dsw-alias-label-primary);}.dsh-nt-heading{margin:0;font-size:18px;font-weight:600;}.dsh-nt-intro{margin:0;font-size:13px;color:var(--dsw-alias-label-tertiary);}.dsh-nt-card{list-style:none;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-3);}.dsh-nt-cardhead{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;}.dsh-nt-cardtext{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}.dsh-nt-cardname{font-size:15px;font-weight:600;line-height:1.4;color:var(--dsw-alias-label-primary);display:flex;align-items:center;gap:8px;}.dsh-nt-carddesc{font-size:13px;line-height:1.5;color:var(--dsw-alias-label-tertiary);}.dsh-nt-badge{border-radius:999px;padding:1px 8px;font-size:11px;line-height:17px;font-weight:500;white-space:nowrap;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary);}.dsh-nt-badge.off{background:none;color:var(--dsw-alias-label-tertiary);}.dsh-nt-body{border-top:1px solid var(--dsw-alias-border-l2);margin:0 16px;padding:4px 0 8px;}.dsh-nt-field{display:flex;flex-direction:column;gap:6px;padding:12px 0;}.dsh-nt-field+.dsh-nt-field{border-top:1px solid var(--dsw-alias-border-l2);}.dsh-nt-fieldhead{display:flex;align-items:center;gap:8px;}.dsh-nt-label{flex:1;min-width:0;font-size:13px;font-weight:500;line-height:1.5;color:var(--dsw-alias-label-primary);}.dsh-nt-hint{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-tertiary);}.dsh-nt-input{height:34px;padding:0 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-3);font:inherit;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);}.dsh-nt-input:focus-visible{outline:none;border-color:var(--dsw-alias-brand-primary);}.dsh-nt-input::placeholder{color:var(--dsw-alias-label-tertiary);}.dsh-nt-select{height:34px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-3);font:inherit;font-size:13px;color:var(--dsw-alias-label-primary);}.dsh-nt-select:focus-visible{outline:none;border-color:var(--dsw-alias-brand-primary);}.dsh-nt-switch{position:relative;display:inline-block;width:36px;height:20px;flex:none;}.dsh-nt-switch input{opacity:0;width:0;height:0;margin:0;}.dsh-nt-switch .track{position:absolute;inset:0;box-sizing:border-box;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);border-radius:999px;cursor:pointer;transition:background .15s ease,border-color .15s ease;}.dsh-nt-switch .thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s ease,background .15s ease;}.dsh-nt-switch input:checked+.track{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);}.dsh-nt-switch input:checked+.track .thumb{transform:translateX(16px);background:#fff;}.dsh-nt-subtitle{font-size:13px;font-weight:600;line-height:1.5;color:var(--dsw-alias-label-primary);padding:10px 0 2px;}.dsh-nt-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:none;border-radius:8px;background:transparent;cursor:pointer;color:var(--dsw-alias-label-primary);transition:background .15s ease,color .15s ease,opacity .15s ease;}.dsh-nt-bell:hover{background:var(--dsw-alias-interactive-bg-hover,transparent);}.dsh-nt-bell.off{color:var(--dsw-alias-label-secondary);opacity:.55;}.dsh-nt-bell-dot{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-success-primary);}.dsh-nt-bell-dot.off{background:var(--dsw-alias-label-secondary);opacity:.6;}[role=dialog] nav button:last-child>svg{display:none}[role=dialog] nav button:last-child>span{position:relative;padding-left:22px}[role=dialog] nav button:last-child>span::before{content:'';position:absolute;left:0;top:50%;width:16px;height:16px;transform:translateY(-50%);background-color:currentColor;-webkit-mask:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9%27/%3E%3Cpath d=%27M13.73 21a2 2 0 0 1-3.46 0%27/%3E%3C/svg%3E') no-repeat center/contain;mask:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9%27/%3E%3Cpath d=%27M13.73 21a2 2 0 0 1-3.46 0%27/%3E%3C/svg%3E') no-repeat center/contain;}`)
+
+    let audioCtx = null
+    const ensureCtx = () => {
+      const w = typeof window !== 'undefined' ? window : null
+      if (w === null) return null
+      const AC = w.AudioContext || w.webkitAudioContext
+      if (!AC) return null
+      try {
+        if (audioCtx === null) audioCtx = new AC()
+        const ac = audioCtx; if (ac.state === 'suspended') ac.resume().catch(() => {}); return ac
+      } catch (err) { return null }
+    }
+    const SYNTHS = {
+      bell: { vol: 0.5, notes: [[880, 1.0, 0, 1.4], [1318.5, 0.5, 0, 1.4], [1760, 0.25, 0.02, 1.2]] },
+      soft: { vol: 0.35, notes: [[523.25, 1.0, 0, 1.0], [783.99, 0.5, 0, 1.0]] },
+      beep: { vol: 0.45, notes: [[660, 1.0, 0, 0.18], [990, 1.0, 0.28, 0.18]] },
+    }
+    const playSynth = (kind) => {
+      const ac = ensureCtx(); if (ac === null) return
+      const spec = SYNTHS[kind] || SYNTHS.bell; const now = ac.currentTime
+      const master = ac.createGain(); master.connect(ac.destination)
+      master.gain.setValueAtTime(spec.vol, now)
+      for (const n of spec.notes) {
+        const osc = ac.createOscillator(); const gain = ac.createGain()
+        osc.type = 'sine'; osc.frequency.value = n[0]; const start = now + n[2]
+        gain.gain.setValueAtTime(0.0001, start); gain.gain.exponentialRampToValueAtTime(n[1], start + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, start + n[3])
+        osc.connect(gain); gain.connect(master); osc.start(start); osc.stop(start + n[3] + 0.05)
+      }
+    }
+    const playUrl = (url) => { try { const el = new Audio(url); el.volume = 0.8; el.play().catch(() => {}) } catch (err) {} }
+    const showNotification = () => {
+      if (!notifyPermitted) return
+      try { const n = new Notification('任务完成', { body: 'Agent 已完成当前工作' }); n.onclick = () => { window.focus() } } catch (err) {}
+    }
+    const poll = () => {
+      host.call('task-ding/take', null).then((res) => {
+        if (res && typeof res === 'object' && res.ding === true) {
+          const s = resolveSettings(currentWsId)
+          if (s.macNotify) showNotification()
+          if (s.sound) {
+            if (s.soundType === 'url') { const u = s.soundUrl.trim(); if (u !== '') playUrl(u); else playSynth('bell'); return }
+            playSynth(s.soundType)
+          }
+          host.call('ding-chime/hooks/pending', null).then((hr) => { if (hr && hr.hooks) hr.hooks.forEach(executeHook) }).catch(() => {})
+        }
+      }).catch(() => {})
+    }
+    ctx.interval(poll, 500)
+    ensureNotify()
+
+    const slots = ctx.get('slots')
+    if (slots === undefined) return
+
+    slots.inject('conversation.session.header.utilities', () => slots.register(
+      { name: 'conversation.session.header.utilities', id: 'ding-bell-toggle', order: 100, label: '任务通知开关' },
+      (props) => {
+        const { sessionId, useWorkspaces } = props
+        const wsId = getWorkspaceId(sessionId, useWorkspaces); currentWsId = wsId
+        const s = resolveSettings(wsId)
+        const [tick, setTick] = React.useState(0)
+        React.useEffect(() => subscribe(() => setTick(t => t + 1)), [])
+        if (!s.showBell) return null
+        return h('button', {
+          type: 'button', className: 'dsh-nt-bell' + (s.sound || s.macNotify ? '' : ' off'),
+          title: '任务通知', 'aria-label': '任务通知',
+          onClick: () => { s.sound = !s.sound; saveSettings(wsId, s); notify() },
+        }, h(BellIcon, { size: 17 }), h('span', { className: 'dsh-nt-bell-dot' + (s.sound || s.macNotify ? '' : ' off') }))
+      },
+    ))
+
+    slots.inject('settings.section', () => slots.register(
+      { name: 'settings.section', id: 'ding-chime', order: 30, label: '任务通知' },
+      (props) => {
+        const { sessionId, useWorkspaces } = props
+        const wsId = getWorkspaceId(sessionId, useWorkspaces); currentWsId = wsId
+        const s = resolveSettings(wsId)
+        const [tick, setTick] = React.useState(0)
+        React.useEffect(() => subscribe(() => setTick(t => t + 1)), [])
+        const persist = (data) => { saveSettings(wsId, data); notify() }
+        const on = s.sound || s.macNotify
+
+        return h('div', { className: 'dsh-nt-section' },
+          h('h2', { className: 'dsh-nt-heading' }, '任务通知'),
+          h('p', { className: 'dsh-nt-intro' }, 'Agent 完成任务时通过所选渠道通知你。每个项目独立记忆设置。'),
+
+          h('div', { className: 'dsh-nt-card' },
+            h('div', { className: 'dsh-nt-cardhead' },
+              h('div', { className: 'dsh-nt-cardtext' },
+                h('div', { className: 'dsh-nt-cardname' }, h(BellIcon, { size: 15 }), '通知渠道'),
+                h('div', { className: 'dsh-nt-carddesc' }, '选择任务完成时的通知方式'),
+              ),
+              h('span', { className: 'dsh-nt-badge' + (on ? '' : ' off') }, on ? '已开启' : '已关闭'),
+            ),
+            h('div', { className: 'dsh-nt-body' },
+              h('div', { className: 'dsh-nt-field' },
+                h('div', { className: 'dsh-nt-fieldhead' },
+                  h('label', { className: 'dsh-nt-label' }, '声音提示'),
+                  h('label', { className: 'dsh-nt-switch' },
+                    h('input', { type: 'checkbox', checked: s.sound, onChange: () => { s.sound = !s.sound; persist(s) } }),
+                    h('span', { className: 'track' }, h('span', { className: 'thumb' })),
+                  ),
+                ),
+                h('p', { className: 'dsh-nt-hint' }, '播放提示音'),
+              ),
+              h('div', { className: 'dsh-nt-field' },
+                h('div', { className: 'dsh-nt-fieldhead' },
+                  h('label', { className: 'dsh-nt-label' }, '系统通知'),
+                  h('label', { className: 'dsh-nt-switch' },
+                    h('input', { type: 'checkbox', checked: s.macNotify, onChange: async () => { s.macNotify = !s.macNotify; if (s.macNotify) await ensureNotify(); persist(s) } }),
+                    h('span', { className: 'track' }, h('span', { className: 'thumb' })),
+                  ),
+                ),
+                h('p', { className: 'dsh-nt-hint' }, 'macOS 系统原生通知（通知中心可见）'),
+              ),
+            ),
+          ),
+
+          h('div', { className: 'dsh-nt-card' },
+            h('div', { className: 'dsh-nt-cardhead' },
+              h('div', { className: 'dsh-nt-cardtext' },
+                h('div', { className: 'dsh-nt-cardname' }, '声音设置'),
+                h('div', { className: 'dsh-nt-carddesc' }, '配置提示音的来源与风格'),
+              ),
+            ),
+            h('div', { className: 'dsh-nt-body' },
+              h('div', { className: 'dsh-nt-field' },
+                h('div', { className: 'dsh-nt-fieldhead' },
+                  h('label', { className: 'dsh-nt-label', htmlFor: 'nt-sound' }, '声音源'),
+                ),
+                h('select', { id: 'nt-sound', className: 'dsh-nt-select', value: s.soundType, onChange: (e) => { s.soundType = e.target.value; persist(s) } },
+                  h('option', { value: 'bell' }, '经典叮声'), h('option', { value: 'soft' }, '柔和提示音'), h('option', { value: 'beep' }, '短促双音'), h('option', { value: 'url' }, '自定义音频 URL'),
+                ),
+              ),
+              s.soundType === 'url' ? h('div', { className: 'dsh-nt-field' },
+                h('div', { className: 'dsh-nt-fieldhead' },
+                  h('label', { className: 'dsh-nt-label', htmlFor: 'nt-soundurl' }, '音频链接'),
+                ),
+                h('input', { id: 'nt-soundurl', className: 'dsh-nt-input', type: 'text', placeholder: 'https://.../sound.mp3', value: s.soundUrl, onChange: (e) => { s.soundUrl = e.target.value; persist(s) } }),
+              ) : null,
+            ),
+          ),
+
+          h('div', { className: 'dsh-nt-card' },
+            h('div', { className: 'dsh-nt-cardhead' },
+              h('div', { className: 'dsh-nt-cardtext' },
+                h('div', { className: 'dsh-nt-cardname' }, '界面'),
+                h('div', { className: 'dsh-nt-carddesc' }, '控制右上角快捷开关的显示'),
+              ),
+            ),
+            h('div', { className: 'dsh-nt-body' },
+              h('div', { className: 'dsh-nt-field' },
+                h('div', { className: 'dsh-nt-fieldhead' },
+                  h('label', { className: 'dsh-nt-label' }, '显示右上角铃铛'),
+                  h('label', { className: 'dsh-nt-switch' },
+                    h('input', { type: 'checkbox', checked: s.showBell, onChange: () => { s.showBell = !s.showBell; persist(s) } }),
+                    h('span', { className: 'track' }, h('span', { className: 'thumb' })),
+                  ),
+                ),
+                h('p', { className: 'dsh-nt-hint' }, '在会话头部显示快捷开关'),
+              ),
+            ),
+          ),
+
+          h('div', { className: 'dsh-nt-card' },
+            h('div', { className: 'dsh-nt-cardhead' },
+              h('div', { className: 'dsh-nt-cardtext' },
+                h('div', { className: 'dsh-nt-cardname' }, 'Hook 扩展'),
+                h('div', { className: 'dsh-nt-carddesc' }, '外部插件可插拔地扩展通知渠道'),
+              ),
+            ),
+            h('div', { className: 'dsh-nt-body' },
+              h('div', { style: { fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-tertiary)', padding: '10px 0' } },
+                '支持类型：notification / fetch / console。通过 Host call 注册 onTaskComplete / onDing 事件。即将支持卡片、飞书回调等更多渠道。'),
+            ),
+          ),
+        )
+      },
+    ))
+
+    slots.inject('tool.view.cordis', () => slots.register(
+      { name: 'tool.view.cordis', key: 'self' },
+      () => h('div', { className: 'dsh-nt-hint' }, h(BellIcon, { size: 14 }), h('span', null, '任务通知 · 配置入口：设置 → 任务通知')),
+    ))
+  },
+}
