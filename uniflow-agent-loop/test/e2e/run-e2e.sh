@@ -29,21 +29,29 @@ echo "$OUT" | grep -q '"pass":true' || { echo "E2E_FAIL"; exit 1; }
 echo "E2E_PASS"
 
 echo "== 4/5 worker session receipt (machine truth, independent) =="
-# BSD find 的 -maxdepth+-name 组合在 "--" 前缀目录下不可靠；改用 shell glob。
-# 注意：zstd 解压活会话日志可能带 truncated 警告返回非零 —— grep 判定必须
-# 独立于 zstd 退出码（管道整体取 grep 结果，禁 pipefail 连坐）。
+# 直接用 E2E 结果中的 worker_started.run_id 定位会话目录（确定性，无搜索、
+# 无跨会话误报）。日志 flush 有竞态：轮询至多 15s 等待 request/header 落盘。
+RUN_ID=$(echo "$OUT" | grep -o '"run_id":"[^"]*"' | head -1 | cut -d'"' -f4)
+[ -n "$RUN_ID" ] || { echo "NO_RUN_ID_IN_RESULT"; exit 1; }
 WORKER_SESSION=""
-for log in /Users/fran/.dsh/sessions/*/*/*.zstd; do
-  [ -e "$log" ] || continue
-  [ "$log" -nt "$RECORD_DIR/WI-E2E-001.json" ] || continue
-  if zstd -d -c "$log" 2>/dev/null | { grep -q '"provider":"opencode-go","model":"deepseek-v4-flash"' || true; }; then
-    if zstd -d -c "$log" 2>/dev/null | grep -q '"provider":"opencode-go","model":"deepseek-v4-flash"'; then
-      WORKER_SESSION="$(dirname "$log")"
-      break
-    fi
-  fi
+LOG=""
+for _ in $(seq 1 30); do
+  for root in /Users/fran/.dsh/sessions/*/; do
+    cand="${root}${RUN_ID}/session.jsonl.zstd"
+    if [ -f "$cand" ]; then LOG="$cand"; break 2; fi
+  done
+  sleep 1
 done
-[ -n "$WORKER_SESSION" ] || { echo "NO_WORKER_SESSION_FOUND"; exit 1; }
+[ -n "$LOG" ] || { echo "NO_WORKER_SESSION_FOUND run_id=$RUN_ID"; exit 1; }
+# 日志存在后，再等 request/header 可解压（flush 完成标志）。
+for _ in $(seq 1 30); do
+  if zstd -d -c "$LOG" 2>/dev/null | grep -q '"provider":"opencode-go","model":"deepseek-v4-flash"'; then
+    WORKER_SESSION="$(dirname "$LOG")"
+    break
+  fi
+  sleep 1
+done
+[ -n "$WORKER_SESSION" ] || { echo "WORKER_LOG_LACKS_FORCED_MODEL run_id=$RUN_ID"; exit 1; }
 echo "worker session: $WORKER_SESSION"
 
 echo "== 5/5 M0 CLI receipt cross-check =="
