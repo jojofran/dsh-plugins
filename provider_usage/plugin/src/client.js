@@ -4,7 +4,7 @@
 // 格式对齐 tsdown 产物的 window.__ModuleLoader__.load({ id, factory(require) }):
 //  - react 由模块系统 require 解析（产品 client bundle 同样 require('react')）
 //  - 其余全部走 ctx 服务：slots（注册 UI）、remote（调用 Host）
-// RPC：手写 Typert 贡献（src-json codec，免生成）→ remote.providerUsage.overview()
+// RPC：手写 Typert 贡献（strict 透传 codec，免生成）→ remote.providerUsage.overview()
 //      → 网关 SRC 运行时解析 → Host 的 ProviderUsageHost 服务（与工具同口径）
 // 样式：内联 style 对象（不依赖 styles.insert）。
 
@@ -18,7 +18,9 @@ window.__ModuleLoader__.load({
 
 		const inject = ["slots", "remote"]
 
-		// 手写 Typert 贡献：端点 providerUsage/overview，结果走 src-json（JSON 直通）
+		// 手写 Typert 贡献：端点 providerUsage/overview。
+		// Client 侧要求 strict codec（src-json 仅是 Host SRC 侧约定）；用带透传
+		// schema.parse 的 strict codec 实现同样的 JSON 直通语义。
 		const contribution = {
 			package: "@user/dsh-plugin-provider-usage",
 			descriptors: [{
@@ -28,7 +30,11 @@ window.__ModuleLoader__.load({
 				method: "overview",
 				invocation: { kind: "direct" },
 				parameters: [],
-				result: { mode: "src-json" },
+				result: {
+					mode: "strict",
+					typeSymbol: "provider-usage/JsonValue",
+					schema: { parse: (value) => value },
+				},
 			}],
 		}
 
