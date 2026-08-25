@@ -164,9 +164,11 @@ test('M3+M4: agent/request injects binding and captures machine receipt', async 
   })
   await registryProvider.start({ parent: { session: { id: 'parent-1' } }, agentOptions: {}, prompt: [] })
 
-  // 子会话首个请求：父模型继承（zai/glm-5.2）→ listener 强制覆盖 + 注入 reasoning。
+  // 真实流：子 Agent 的 agentOptions 已被 M2 覆盖为绑定模型（resolved config
+  // 携带 opencode-go/deepseek-v4-flash），reasoning 仍为父默认（medium）。
+  // listener 职责：注入绑定的 reasoning=high + 捕获机器回执。
   const out = await fireRequest(ctx, 'child-9', {
-    provider: 'zai', model: 'glm-5.2', reasoningEffort: 'high', maxTokens: 100,
+    provider: 'opencode-go', model: 'deepseek-v4-flash', reasoningEffort: 'medium', maxTokens: 100,
   })
   assert.equal(out.provider, 'opencode-go')
   assert.equal(out.model, 'deepseek-v4-flash')
@@ -188,9 +190,6 @@ test('M4: receipt mismatch (wrong model executed) is rejected', async () => {
   const ctx = fakeCtx()
   apply(ctx, {})
   ctx.uniflow.registerEnvelope(envelope())
-  // 直接手工捕获一条错误模型回执（模拟绑定未生效的真实执行）：
-  const registry = createRegistry()
-  // 借 registry API 不可行（独立实例），改走 provider 正常路径后伪造请求：
   const provider = ctx.__providers.get('uniflow')
   ctx.subagents.registerProvider({
     name: 'spawn',
@@ -199,8 +198,8 @@ test('M4: receipt mismatch (wrong model executed) is rejected', async () => {
     start: async () => ({ id: 'child-x', result: Promise.resolve({ stopReason: 'completed' }), dispose: async () => {} }),
   })
   await provider.start({ parent: { session: { id: 'p' } }, agentOptions: {}, prompt: [] })
-  // child-x 请求时 spawn provider 失效路径：agentOptions 已覆盖，但 listener
-  // 匹配失败（provider/model 不符 armed 绑定）→ 无覆盖、无回执。
+  // 绑定未生效的真实执行（resolved 仍是父模型）：listener 不匹配 → 无覆盖、
+  // 无回执捕获 —— 验收时 fail-closed（RECEIPT_LOST），绝不伪造。
   const out = await fireRequest(ctx, 'child-x', { provider: 'zai', model: 'glm-5.2' })
   assert.equal(out.provider, 'zai')
   assert.throws(() => ctx.uniflow.verifyReceipt('WI-1'), err => err.code === 'RECEIPT_LOST')
