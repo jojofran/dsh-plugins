@@ -131,3 +131,24 @@ cd ~/.dsh/profiles/web && node --input-type=module -e \
 - **为什么不用 cordis_define 交付**：进程局部、重启即失、需手工恢复（plugin-code.json），不满足"重新运行有效"。
 - **为什么不用 `mcp` / 外部服务迂回**：Tool Plugin 是规范推荐的数据查询形态，无额外进程、无端口、随 DSH 生命周期天然同步。
 - **后续演进**：如需本地用量聚合（从 `~/.dsh/sessions/**/session.jsonl.zstd` 统计 DSH 实际消耗），作为同一插件的 `usage_local` 工具增量演进（1.1.0），仍遵循"仅工具被调用时执行"的零稳态开销原则。
+
+---
+
+## 6. 弹窗 UI：动态伴生插件（本会话已交付，重启需恢复）
+
+用量查询的**常驻图形界面**分两层决策：
+
+### 为什么 UI 不直接塞进静态包
+
+静态包的 Client 半部与 Host 通信需要 typert 生成式描述符 + **重建 web 产物**（apps/web 构建链），风险落在"影响 DSH 主功能"上，违背部署红线。因此弹窗 UI 以**动态 Cordis 插件**交付（`usg`，见 `ui/recovery.usg-1.json`）：
+
+- **Host 半部**：经 `subprocess` 服务调 `curl`（带 Authorization 头）查询厂商，口径与静态包 `usage_overview` 一致（同一调查结论）；详见动态 Host 沙箱无 fetch、`web.fetch` 不支持自定义头的实测发现。
+- **Client 半部**：`sidebar.footer.action` 加「用量」按钮（窄侧栏显示图标），`shell.overlay` 渲染弹窗；默认关闭、点击穿透，**不占主界面**；打开后实时查询 + 手动刷新。
+
+### 生命周期与重启恢复
+
+动态插件**进程局部**：DSH 重启后需要重新 `cordis_define` + `cordis_run`（首次运行需在 UI 批准）。恢复方法：用 `ui/recovery.usg-1.json` 里的 `definition` 原样提交（idPrefix `usg`），得到新 pluginId/packageId 后 run 即可。
+
+### 长期去向（可选，需 web 重建）
+
+若希望弹窗随 DSH 启动自动存在，唯一正路是把 Client 半部并入静态包（`exports["./client"]` + `dsh.client` 声明 + typert 描述符），这需要重建 web 产物并在 profile 验证——作为独立决策项，**不在"尽量不影响主功能"的默认路径内**。
