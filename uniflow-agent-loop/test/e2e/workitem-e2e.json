@@ -1,0 +1,27 @@
+{
+  "id": "WI-E2E-001",
+  "change_set_id": "CS-E2E",
+  "base_revision": "e2d8dd44214632f50777992d58fb4fe318ad45f0",
+  "role_profile": "module-worker",
+  "execution_profile": "development",
+  "module_profile": "engineering-governance",
+  "worker_owner": "e2e-worker-1",
+  "objective": "验证 worker 能正确加载模块上下文并返回结构化 WorkResult",
+  "semantic_brief": {
+    "summary": "端到端验证任务。本任务要求 worker 先运行上下文加载命令，再基于加载结果完成一个只读微任务并返回 WorkResult。",
+    "core_points": [
+      "先运行 agent_profile_validator context 命令加载上下文",
+      "从上下文清单中提取 engineering-governance 的 owned paths",
+      "返回 WorkResult JSON，不写任何文件"
+    ]
+  },
+  "scope": {"write": [], "read_hints": [".ai/profiles/modules.json"]},
+  "anchors": [{"path": ".ai/profiles/modules.json", "symbol": "engineering-governance"}],
+  "change_principles": ["只读验证任务，不修改任何文件"],
+  "contract_refs": [],
+  "acceptance": ["返回包含 owned paths 的 WorkResult JSON"],
+  "forbidden": ["禁止写入任何文件", "禁止调用模型 API 之外的任何网络访问"],
+  "escalation": ["上下文加载命令失败时在 WorkResult 中如实报告"],
+  "leader_decisions_frozen": true,
+  "unresolved_architecture": []
+}

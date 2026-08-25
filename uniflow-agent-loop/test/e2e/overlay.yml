@@ -1,0 +1,19 @@
+# uniflow E2E overlay — 经 dsh --patch 挂载（headless profile）。
+# 新插件行必须走 insert: 列表（顶层条目只覆盖已存在行）。
+# 禁用 headless-runner（E2E 驱动自驱退出）。
+
+- id: headless-runner
+  disabled: true
+
+- insert:
+    - id: uniflow-agent-loop
+      name: dsh-uniflow-agent-loop
+      config:
+        profileSource: /Users/fran/Documents/Code/spacex/uni_claw/.dsh/profile-adapter/profile-source.yaml
+
+    - id: uniflow-e2e-driver
+      name: uniflow-e2e-driver
+      config:
+        recordPath: /Users/fran/Documents/Code/dsh-plugins/uniflow-agent-loop/.e2e/WI-E2E-001.json
+        repoRoot: /Users/fran/Documents/Code/spacex/uni_claw
+        timeoutMs: 240000

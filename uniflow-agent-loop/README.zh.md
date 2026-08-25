@@ -16,12 +16,31 @@
 
 | Milestone | 内容 | 状态 |
 |---|---|---|
+| M0 | repo 侧 CLI 收口：`dsh_profile_adapter.py dispatch/receipt`（uni_claw 仓） | ✅ |
 | M1 | 包骨架 + 纯函数 gates（envelope 形状 / 回执核对）+ 会话级登记 | ✅ |
-| M2 | `registerProvider('uniflow')` spawn 强制绑定 + 能力 fail-closed | 待实施 |
-| M3 | `installModelSelection` reasoning 注入 | 待实施 |
-| M4 | session 日志回执监听 + `uniflow_accept` | 待实施 |
-| M5 | 真实 Host 集成闭环 | 待实施 |
-| M6 | 发布 1.0.0 | 待实施 |
+| M2 | `registerProvider('uniflow')` spawn 强制绑定 + 能力 fail-closed | ✅ |
+| M3 | 根级 `agent/request` waterfall 注入 reasoningEffort | ✅ |
+| M4 | 实际 LlmCallConfig 回执捕获 + `verifyReceipt` 验收面 | ✅ |
+| M5 | 真实 Host 集成闭环（E2E 流程测试，见下） | ✅ |
+| M6 | 发布 1.0.0 | ✅ |
+
+## E2E 流程测试（M5 验收）
+
+`npm run e2e`（即 `test/e2e/run-e2e.sh`，可重复执行，需 `~/.dsh` 凭证含
+opencode-go）验证完整闭环：
+
+1. **Leader 指派模型**：CLI dispatch 从 profile-source.yaml 解析 requested
+   binding（opencode-go/deepseek-v4-flash/high）—— Leader 无自选权；
+2. **Leader 下发指定格式指令**：WorkItem envelope 过 gate 登记，worker
+   prompt 携带上下文加载命令与 WorkResult 契约；
+3. **Worker 加载上下文**：第一步强制运行
+   `agent_profile_validator context --module … --execution …`；
+4. **模型强制执行**：provider 覆盖 agentOptions；回执从实际 LlmCallConfig
+   捕获（机器真相，非模型自述）；
+5. **独立复核**：M0 CLI `receipt` 从 session 日志重建回执交叉核对。
+
+最近一次全绿输出（5/5）：unit 23/23 → DISPATCH_OK → E2E_PASS →
+worker session 确认 deepseek-v4-flash/high → RECEIPT_OK。
 
 ## 安装
 
@@ -43,9 +62,11 @@ dsh plugin --profile web add dsh-uniflow-agent-loop
 仅限开发回路。profile root 禁止本地 `file:` 依赖（悬空链接属安装损坏，
 `validate` 必须检出）。
 
-**配置**：插件不携带 UniFlow 配置。`settings` 中 `uniflow.profileSource`
-是指向 uni_claw 仓 `.dsh/profile-adapter/profile-source.yaml` 的路径指针；
-绑定 digest 漂移 → 启动即拒载（`STALE_PROFILE_SOURCE`），不降级运行。
+**配置**：插件不携带 UniFlow 配置。插件行 `config.profileSource` 是指向
+uni_claw 仓 `.dsh/profile-adapter/profile-source.yaml` 的路径指针（绑定真相
+从其 `#BEGIN JSON` 机器块解析）；解析失败仅降级健康报告（`health()` 中
+`profile_source.loaded: false`），派发绑定的强制不依赖该文件 —— 绑定以
+envelope 登记的 requested binding 为准，其真相链是 repo 侧 dispatch record。
 
 ## 生命周期（设计 L1–L5 摘要）
 
@@ -60,17 +81,18 @@ dsh plugin --profile web add dsh-uniflow-agent-loop
 ## 测试
 
 ```sh
-npm test          # node:test，零外部依赖
+npm test          # node:test 单元门，零外部依赖
+npm run e2e       # 完整闭环流程测试（真实模型调用，需 ~/.dsh 凭证）
 ```
 
-发布前检查清单（M6 gate）：
+发布前检查清单（M6 gate，1.0.0 已全过）：
 
-1. `npm test` 全绿；
+1. `npm test` 全绿（23/23）；
 2. 包自包含：`files` 只含 `src/` 产物与文档，运行时零依赖（host 部件走
    peerDependencies）；
-3. `npm pack --dry-run` 产物与 `files` 声明一致；
+3. `npm pack --dry-run` 产物与 `files` 声明一致（8 文件，4 源文件 + 3 文档 + manifest）；
 4. semver：破坏 envelope/回执契约 → MAJOR；新增能力 → MINOR；修复 → PATCH；
-5. `protocol_version` 兼容性声明与 uni_claw 侧 `DSH_PROTOCOL_VERSION` 核对。
+5. `protocol_version` 兼容性声明与 uni_claw 侧 `DSH_PROTOCOL_VERSION` 核对（当前均为 1）。
 
 ## 安全
 

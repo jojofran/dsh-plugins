@@ -1,0 +1,8 @@
+{
+  "name": "uniflow-e2e-driver",
+  "version": "0.1.0",
+  "description": "test-only E2E driver for dsh-uniflow-agent-loop (mounted via --patch; never published)",
+  "private": true,
+  "type": "module",
+  "main": "driver-plugin.js"
+}

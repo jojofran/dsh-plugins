@@ -44,7 +44,7 @@ function fakeCtx () {
       listeners[event].push(fn)
       return () => listeners[event].splice(listeners[event].indexOf(fn), 1)
     },
-    plugin: (name, service) => { ctx[name] = service },
+    reflect: { provide: (name, service) => { ctx[name] = service } },
     logger: { warn: () => {} },
   }
   ctx.__listeners = listeners

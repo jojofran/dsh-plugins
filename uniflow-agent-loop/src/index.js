@@ -77,8 +77,9 @@ export function apply (ctx, config) {
     return overridden
   })
 
-  // L3：能力面。Leader/验证方查询插件健康与绑定真相。
-  ctx.plugin('uniflow', {
+  // L3：能力面 —— 经 cordis Service 语义注册 'uniflow' 命名服务
+  // （ctx.plugin 只挂插件；服务必须 ctx.reflect.provide）。fiber 卸载时自动注销。
+  const uniflowService = {
     registerEnvelope: envelope => registry.registerEnvelope(envelope),
     verifyReceipt: (id, receipt) => registry.verifyReceipt(id, receipt),
     getReceipt: id => registry.getReceipt(id),
@@ -93,7 +94,8 @@ export function apply (ctx, config) {
             source_revision: profileSource.sourceRevision,
           },
     }),
-  })
+  }
+  ctx.reflect.provide('uniflow', uniflowService)
 
   ctx.on('dispose', () => {
     disposeRequestHook()

@@ -1,6 +1,6 @@
 {
   "name": "dsh-uniflow-agent-loop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "UniFlow 机械强制闭环插件：WorkItem gate → 显式模型绑定 → 真实 Host 回执 → ResultGate 验收",
   "private": true,
   "type": "module",
@@ -12,17 +12,24 @@
   "exports": {
     ".": "./src/index.js",
     "./gates.js": "./src/gates.js",
+    "./registry.js": "./src/registry.js",
+    "./provider.js": "./src/provider.js",
+    "./binding.js": "./src/binding.js",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
     "src/gates.js",
+    "src/registry.js",
+    "src/provider.js",
+    "src/binding.js",
     "README.md",
     "README.zh.md",
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test test/gates.test.js"
+    "test": "node --test test/gates.test.js test/provider.test.js",
+    "e2e": "bash test/e2e/run-e2e.sh"
   },
   "dsh": {
     "client": {
@@ -32,9 +39,9 @@
       "platform": "web"
     }
   },
-  "peerDependencies": {
-    "@deepseek-ai/cordis": "*",
-    "@deepseek-ai/dsh-typert-protocol": "*"
+  "dependencies": {
+    "@deepseek-ai/cordis": "link:/Users/fran/Documents/Code/dk-harness/vendor/cordis",
+    "@deepseek-ai/dsh-typert-protocol": "link:/Users/fran/Documents/Code/dk-harness/packages/typert/protocol"
   },
   "engines": {
     "node": ">=20"
