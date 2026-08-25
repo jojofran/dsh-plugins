@@ -1,0 +1,24 @@
+{
+  "name": "@user/dsh-plugin-provider-usage",
+  "version": "1.0.0",
+  "description": "为 DSH 提供模型供应商用量/配额查询能力（zai / opencode-go / deepseek / 百炼 Token Plan）",
+  "private": true,
+  "type": "module",
+  "author": "dsh-plugins",
+  "license": "MIT",
+  "keywords": ["dsh", "plugin", "usage", "quota", "balance", "provider"],
+  "capabilities": ["tool"],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "link:/Users/fran/Documents/Code/dk-harness/vendor/cordis",
+    "@deepseek-ai/dsh-tools": "link:/Users/fran/Documents/Code/dk-harness/packages/core/tools"
+  }
+}
