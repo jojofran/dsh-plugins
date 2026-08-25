@@ -134,21 +134,28 @@ cd ~/.dsh/profiles/web && node --input-type=module -e \
 
 ---
 
-## 6. 弹窗 UI：动态伴生插件（本会话已交付，重启需恢复）
+## 6. 弹窗 UI：静态 Client 半部（1.1.0 起内置，重启自动加载）
 
-用量查询的**常驻图形界面**分两层决策：
+用量弹窗已并入静态包本体，**不依赖动态插件、不重建 web 产物**：
 
-### 为什么 UI 不直接塞进静态包
+### 实现要点（免生成 RPC 的完整链路）
 
-静态包的 Client 半部与 Host 通信需要 typert 生成式描述符 + **重建 web 产物**（apps/web 构建链），风险落在"影响 DSH 主功能"上，违背部署红线。因此弹窗 UI 以**动态 Cordis 插件**交付（`usg`，见 `ui/recovery.usg-1.json`）：
+| 环节 | 实现 | 依据 |
+|---|---|---|
+| Client 入口 | 手写模块系统 bundle `src/client.js`（`window.__ModuleLoader__.load({id, factory(require)})`），经 `exports["./client"]` + `dsh.client` 声明被 web plugin table 运行时服务 | 与 tsdown 产物同格式（`require('react')` 由模块系统解析），插件包不进入 web shell 构建图 |
+| Client→Host RPC | 手写 Typert 贡献：`{service:'providerUsage', namespace:'providerUsage', method:'overview', result:{mode:'src-json'}}` → `ctx.remote` `$mount` → `remote.providerUsage.overview()` | `src-json` codec 免 schema；网关 `resolveDescriptor` 无严格定义时回退 **SRC 标记运行时解析**（`api/gateway/src/index.ts`） |
+| Host 服务 | `ProviderUsageHost extends TypertRemoteService`，手动 `@Remote('overview')`；复用 `queryProvider`，与工具同一口径 | 静态包 Host 在真实进程运行，可 import typert-protocol |
+| UI | `sidebar.footer.action` 按钮 + `shell.overlay` 浮层，默认关闭、点击穿透 | 与动态版同插槽，纯增量 |
 
-- **Host 半部**：经 `subprocess` 服务调 `curl`（带 Authorization 头）查询厂商，口径与静态包 `usage_overview` 一致（同一调查结论）；详见动态 Host 沙箱无 fetch、`web.fetch` 不支持自定义头的实测发现。
-- **Client 半部**：`sidebar.footer.action` 加「用量」按钮（窄侧栏显示图标），`shell.overlay` 渲染弹窗；默认关闭、点击穿透，**不占主界面**；打开后实时查询 + 手动刷新。
+### 生命周期
 
-### 生命周期与重启恢复
+- **重启后**：tools 与 UI 都随 DSH 自动加载（静态包 + client 声明），**零额外步骤**
+- **启用**：`pnpm install`（同步 file: 拷贝）→ 重启 DSH
+- **卸载**：移除 `exports["./client"]` + `dsh.client`（或删 patch 行）→ 重启
+- **回滚**：任一环节异常，删掉 `dsh.client`/`./client` 导出后重启即回到纯工具形态
+- **验证**：重启后强刷页面（Ctrl+Shift+R），侧边栏底部出现「用量」按钮；点击弹窗 → 刷新拿到各供应商实时用量
 
-动态插件**进程局部**：DSH 重启后需要重新 `cordis_define` + `cordis_run`（首次运行需在 UI 批准）。恢复方法：用 `ui/recovery.usg-1.json` 里的 `definition` 原样提交（idPrefix `usg`），得到新 pluginId/packageId 后 run 即可。
+### 遗留
 
-### 长期去向（可选，需 web 重建）
-
-若希望弹窗随 DSH 启动自动存在，唯一正路是把 Client 半部并入静态包（`exports["./client"]` + `dsh.client` 声明 + typert 描述符），这需要重建 web 产物并在 profile 验证——作为独立决策项，**不在"尽量不影响主功能"的默认路径内**。
+- 早期动态伴生插件 `usg-1` 已被静态半部取代（仍可用 `ui/recovery.usg-1.json` 恢复，仅作历史参考）
+- 静态 Client 的浏览器装载与网关 SRC 分发环节需靠**重启后实测**收尾（Host 侧服务/标记已离线 E2E 验证）
