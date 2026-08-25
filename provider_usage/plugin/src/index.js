@@ -16,6 +16,7 @@
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import { TypertRemoteService, Remote } from '@deepseek-ai/dsh-typert-protocol'
 import { PROVIDERS, adapterFor, providerIds, ERROR_CODES } from './providers.js'
 
 export const name = 'provider-usage'
@@ -201,9 +202,56 @@ function renderText(_args, value) {
   return [{ type: 'text', text: JSON.stringify(value, null, 2) }]
 }
 
-/** Plugin entry. 只注册两个工具，不发布服务、不改任何现有行为。 */
+/**
+ * SRC 标记的用量服务：静态 Client 半部经 Typert Gateway 的 SRC 运行时解析
+ * 直接调用（免生成描述符，见 api/gateway resolveDescriptor 的回退路径）。
+ * 复用 queryProvider，与工具 usage_overview 同一份口径，零重复逻辑。
+ */
+export class ProviderUsageHost extends TypertRemoteService {
+  static inject = []
+
+  constructor(ctx, cfg) {
+    super(ctx, 'providerUsage')
+    this.cfg = cfg
+  }
+
+  /** 查询全部供应商用量（静态弹窗的唯一数据入口）。 */
+  async overview() {
+    const providers = []
+    for (const provider of providerIds()) {
+      providers.push(await queryProvider(this.ctx, this.cfg, provider))
+    }
+    return {
+      success: true,
+      queriedAt: new Date().toISOString(),
+      providers,
+    }
+  }
+}
+
+// 手动应用 @Remote('overview')（Node 原生不支持装饰器语法）。
+const providerUsageDecorator = Remote('overview')
+let providerUsageInitializer = null
+providerUsageDecorator(ProviderUsageHost.prototype.overview, {
+  kind: 'method',
+  name: 'overview',
+  private: false,
+  static: false,
+  metadata: undefined,
+  access: { get: () => ProviderUsageHost.prototype.overview },
+  addInitializer(fn) { providerUsageInitializer = fn },
+})
+if (providerUsageInitializer) {
+  providerUsageInitializer.call(Object.create(ProviderUsageHost.prototype))
+}
+
+/** Plugin entry. 只注册两个工具 + 一个 SRC 标记服务，不发布其他服务、不改任何现有行为。 */
 export function apply(ctx, config) {
   const cfg = normalizeConfig(config)
+
+  // 服务实例：Typert Gateway SRC 解析依赖 ctx.reflect.props 里的 service 声明，
+  // Service 构造即注册，供静态 Client 的 ctx.remote.providerUsage.overview() 调用。
+  new ProviderUsageHost(ctx, cfg)
 
   ctx.tools.register(
     defineTool({

@@ -1,13 +1,16 @@
 # @user/dsh-plugin-provider-usage
 
-为 DSH 提供**模型供应商用量/配额查询**能力（Tool Plugin）——一次查询 zai、opencode-go、deepseek 的实时用量/余额/配额，百炼 Token Plan 如实返回"仅控制台"说明。
+为 DSH 提供**模型供应商用量/配额查询**能力（Tool Plugin + 静态化弹窗 UI）——工具侧查 zai、opencode-go、deepseek 的实时用量/余额/配额，百炼 Token Plan 如实返回"仅控制台"说明；浏览器侧提供侧边栏「用量」按钮 + 浮层面板（随 DSH 启动自动加载）。
 
 ## 功能说明
 
 - `usage_query <provider>`：查询单个供应商的用量/配额
 - `usage_overview`：一次查询所有可查供应商的用量概览
+- **弹窗 UI（静态 Client 半部，重启后自动存在）**：侧边栏底部「用量」按钮（窄栏显示图标），`shell.overlay` 浮层面板，默认关闭、点击穿透，不占主界面；打开后实时查询 + 手动刷新
+  - 数据链路：Client 手写 Typert 贡献（`src-json` codec）→ 网关 SRC 运行时解析 → Host `providerUsage` 服务（与工具同一份查询逻辑，零重复）
+  - 免生成、免重建 web：`exports["./client"]` + `dsh.client` 声明，web plugin table 运行时按磁盘文件服务
 - 结构化返回（`{ success, provider, queriedAt, data?, error? }`），任何失败（缺凭证 / 网络 / 超时 / HTTP / 解析 / 仅控制台）都归一化为可读的错误码，不抛异常、不影响 Agent 主流程
-- 零稳态开销：无事件监听、无定时器，仅在工具被调用时发起 HTTPS 请求
+- 零稳态开销：无事件监听、无定时器，仅在工具被调用 / 面板被打开时发起查询
 
 ## 支持矩阵（2026-08-25 实测）
 
@@ -41,10 +44,16 @@ pnpm install
 #       - id: provider-usage
 #         name: '@user/dsh-plugin-provider-usage'
 
-# 4. 重启 DSH。新会话中即可调用 usage_query / usage_overview。
+# 4. 重启 DSH。新会话中即可调用 usage_query / usage_overview；
+#    侧边栏底部出现「用量」按钮（静态 Client 半部由 web plugin table 在重启时装配，
+#    无需额外步骤）。如重启后浏览器未见按钮，强刷页面（Ctrl+Shift+R）。
 ```
 
 安全顺序建议：第 3 步行先加 `disabled: true`，重启确认 profile 正常后再去掉 `disabled` 启用（第 4 步），避免一次改动引入两个变量。
+
+> 1.1.0 起弹窗 UI 为静态 Client 半部：`exports["./client"]` + `dsh.client` 声明驱动，RPC 用
+> Host SRC 标记服务（`providerUsage`）+ 网关 SRC 运行时解析，**无需重建 web 产物**。
+> 回滚：删除 patch 行 / 移除 `dsh.client` 与 `./client` 导出后重启即可。
 
 安装/卸载/升级的完整生命周期分析见 [`docs/deploy-lifecycle.md`](../docs/deploy-lifecycle.md)。
 
