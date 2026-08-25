@@ -58,6 +58,7 @@ dsh plugin --profile web add /path/to/dsh-plugins/task-notify
 
 - [task-notify 安装说明](task-notify/README.md)
 - [provider_usage 安装说明](provider_usage/plugin/README.md)（生命周期分析见 `provider_usage/docs/deploy-lifecycle.md`）
+  - 用量弹窗 UI（侧边栏「用量」按钮 + 浮层，动态伴生插件）：`provider_usage/ui/recovery.usg-1.json`
 - [uniflow-agent-loop 安装说明](uniflow-agent-loop/README.md)
 
 > 注意：插件包内的 `dependencies` 目前用 `link:` 指向本地 dk-harness 检出（开发回路），
