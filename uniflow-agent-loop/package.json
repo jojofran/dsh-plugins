@@ -1,0 +1,42 @@
+{
+  "name": "dsh-uniflow-agent-loop",
+  "version": "0.1.0",
+  "description": "UniFlow 机械强制闭环插件：WorkItem gate → 显式模型绑定 → 真实 Host 回执 → ResultGate 验收",
+  "private": true,
+  "type": "module",
+  "author": "dsh-plugins",
+  "license": "MIT",
+  "keywords": ["dsh", "plugin", "uniflow", "workitem", "subagent", "model-binding"],
+  "capabilities": ["runtime-extension", "tool"],
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./gates.js": "./src/gates.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.js",
+    "src/gates.js",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/gates.test.js"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-typert-protocol"
+      ],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-typert-protocol": "*"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
