@@ -22,9 +22,9 @@ dsh-plugins/
 | 顶层文件夹 | 类型 | 插件包名 | capabilities | 状态 |
 | --- | --- | --- | --- | --- |
 | `task-notify/` | Runtime Extension + UI | `@user/dsh-plugin-task-notify` | `runtime-extension`, `ui` | ✅ 可用 |
-| `provider_usage/plugin/` | Tool | `@user/dsh-plugin-provider-usage` | `tool` | ✅ 可用 |
+| `provider_usage/plugin/` | Tool + UI | `@user/dsh-plugin-provider-usage` | `tool`, `ui` | ✅ 可用 |
 | `uniflow-agent-loop/` | Runtime Extension + Tool | `dsh-uniflow-agent-loop` | `runtime-extension`, `tool` | 🚧 M1 完成 |
-| `skills/` | 规范 skill（非插件） | — | — | — |
+| `skills/` | 规范/经验 skill（非插件） | — | — | 含 `dsh-plugin-development`（规范）与 `dsh-plugin-static-client-ui`（静态 Client 半部经验） |
 
 ## 为什么不在统一的 `src/` 下面？
 

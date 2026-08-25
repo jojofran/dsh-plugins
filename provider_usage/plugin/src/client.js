@@ -98,10 +98,21 @@ window.__ModuleLoader__.load({
 				err: { margin: "8px 0 0", fontSize: 12, lineHeight: 1.5, color: "var(--dsw-alias-state-warning-primary,var(--dsw-alias-label-secondary))" },
 				load: { fontSize: 12, color: "var(--dsw-alias-label-tertiary)", lineHeight: 1.6 },
 				time: { fontSize: 11, color: "var(--dsw-alias-label-tertiary)" },
-				ic: { fontSize: 14, lineHeight: 1 },
 			}
 
 			const fmt = (v) => JSON.stringify(v, null, 1)
+
+			// 钱包图标：Lucide 风格线条图标，stroke=currentColor 跟随主题色，
+			// 扁平简洁、纯增量样式（与产品图标风格一致）。
+			const WalletIcon = () => h("svg", {
+				viewBox: "0 0 24 24", width: 15, height: 15, fill: "none",
+				stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round",
+				strokeLinejoin: "round", "aria-hidden": true, style: { flex: "none" },
+			},
+				h("path", { d: "M21 12V7H5a2 2 0 0 1 0-4h14v4" }),
+				h("path", { d: "M3 5v14a2 2 0 0 0 2 2h16v-5" }),
+				h("path", { d: "M18 12a2 2 0 0 0 0 4h4v-4Z" }),
+			)
 
 			const Row = (result) => {
 				if (!result) return null
@@ -153,7 +164,7 @@ window.__ModuleLoader__.load({
 						type: "button", style: S.button, title: "模型供应商用量", "aria-label": "模型供应商用量",
 						onClick: () => setOpen(!open),
 					},
-						h("span", { style: S.ic, "aria-hidden": true }, "▥"),
+						h(WalletIcon, {}),
 						wide ? h("span", null, "用量") : null)
 				},
 			))

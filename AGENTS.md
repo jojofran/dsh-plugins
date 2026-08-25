@@ -8,10 +8,24 @@
 - 本仓库是 **DSH 插件集合**：`task-notify/`、`provider_usage/plugin/`、
   `uniflow-agent-loop/` 各自是一个**独立的 DSH 插件包**（独立 `package.json` / `src/` /
   `test(s)/` / `README.md` / `LICENSE` / `CHANGELOG.md`）。
-- `skills/` 是开发规范 skill（非插件）；根目录的 `DSH-Plugin-Development-Specification.md`
+- `skills/` 是开发规范/经验 skill（非插件）；根目录的 `DSH-Plugin-Development-Specification.md`
   与 `task-notify-compliance-audit.md` 是文档，不是插件。
 - **插件之间禁止互相依赖、互相 import**；禁止在仓库根目录引入共享业务代码。
   共享的只有规范与文档。
+
+## 技能索引（Skills）
+
+**存放约定**：仓库 `skills/<name>/SKILL.md` 是技能**源**（版本化、评审、可发布）；
+用户级 `~/.agents/skills/<name>/SKILL.md` 是**会话发现即加载**的位置（skill 工具可直接调），
+改源后需同步拷贝到该目录。
+
+| skill | 用途 | 什么时候加载 |
+|---|---|---|
+| `skills/dsh-plugin-development` | DSH 插件设计/开发/发布/维护规范（单一职责、安全、测试、文档门槛） | 设计、审查、评审任意 DSH 插件 |
+| `skills/dsh-plugin-static-client-ui` | 静态插件接入浏览器 UI + 免构建 Client→Host RPC 的经验（bundle 格式、SRC 标记服务、strict codec、生命周期） | 给插件加弹窗/面板等 UI，或排查静态 Client 装载 |
+
+> 其余会话可见技能（`cordis-plugin-development`、`editing-cordis-compositions`、`ego-browser` 等）
+> 由 harness preset / 其他技能源注册，不属于本仓库，不在本表维护。
 
 ## 插件加载机制（决定“目录可以怎么摆”）
 
